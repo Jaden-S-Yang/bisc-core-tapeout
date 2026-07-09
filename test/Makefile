@@ -6,7 +6,9 @@ SIM ?= icarus
 FST ?= -fst # Use more efficient FST format
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = project.v
+# Makefile
+# Point to both of your custom Verilog files
+PROJECT_SOURCES = ../src/tt_um_jaden_bisc_stdp.v ../src/stdp_accelerator.v
 
 ifneq ($(GATES),yes)
 
