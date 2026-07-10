@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, FallingEdge
 
 @cocotb.test()
 async def test_stdp_core(dut):
@@ -35,20 +35,19 @@ async def test_stdp_core(dut):
     # Fire Pre-Spike (Bit 0 = 1)
     dut.uio_in.value = 1 
     await ClockCycles(dut.clk, 1)
-    dut.uio_in.value = 0 # Turn off
+    dut.uio_in.value = 0 
     
-    # Wait 5 clock cycles
     await ClockCycles(dut.clk, 5)
 
     # Fire Post-Spike (Bit 1 = 1) -> Binary 2
     dut.uio_in.value = 2 
-    await ClockCycles(dut.clk, 1) # During this cycle, the chip calculates 100 + 16 = 116
+    await ClockCycles(dut.clk, 1) 
+    await FallingEdge(dut.clk) # <--- THE TIMING FIX
     
-    # CHECK IMMEDIATELY! The output is valid for exactly one clock cycle
+    # Check the physical pin after the signal settles
     assert dut.uo_out.value == 116, f"LTP FAILED! Expected 116, Got {dut.uo_out.value}"
     dut._log.info("SUCCESS: LTP verified. Weight strengthened.")
     
-    # Turn off spike and let logic settle
     dut.uio_in.value = 0 
     await ClockCycles(dut.clk, 2) 
 
@@ -56,21 +55,21 @@ async def test_stdp_core(dut):
     # TEST 2: Long-Term Depression (LTD)
     # ----------------------------------------------------
     dut._log.info("Initiating LTD Test (Post -> Pre)...")
-    await ClockCycles(dut.clk, 60) # Wait for timers to fully reset
+    await ClockCycles(dut.clk, 60) # Wait for timers to reset
     
     # Fire Post-Spike first
     dut.uio_in.value = 2
     await ClockCycles(dut.clk, 1)
     dut.uio_in.value = 0
     
-    # Wait 10 clock cycles
     await ClockCycles(dut.clk, 10)
 
     # Fire Pre-Spike second
     dut.uio_in.value = 1
-    await ClockCycles(dut.clk, 1) # During this cycle, it calculates 100 - 8 = 92
+    await ClockCycles(dut.clk, 1) 
+    await FallingEdge(dut.clk) # <--- THE TIMING FIX
     
-    # CHECK IMMEDIATELY!
+    # Check the physical pin after the signal settles
     assert dut.uo_out.value == 92, f"LTD FAILED! Expected 92, Got {dut.uo_out.value}"
     dut._log.info("SUCCESS: LTD verified. Weight weakened.")
     
